@@ -1,16 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "kMeansCPU.h"
+#include "kMeansGPU1.cuh"
 
-#define N 10000
-#define K 5
+#define N 100000000
+#define K 10
 #define D 3
-#define EPS 0.001 * N + 1
+#define EPS 0.0000001 * N + 1
 
-float** generateDataVectors(int dataVectorLength, int numberOfDimensions);
-void printSolution(float** solution, int dimX, int dimY);
-void clearDataVectors(float** dataVectors);
+float* generateDataVectors(int dataVectorLength, int numberOfDimensions);
+void printSolution(float* solution, int dimX, int dimY);
+void clearDataVectors(float* dataVectors);
 
 int main()
 {
@@ -19,51 +21,57 @@ int main()
     const int centroidVectorLength = K;
     const float threshold = EPS;
 
-    float** dataVectors = generateDataVectors(dataVectorLength, numberOfDimensions);
+    float* dataVectors = generateDataVectors(dataVectorLength, numberOfDimensions);
 
     KMeansCPUSolver kMeansCPUSolver;
     kMeansCPUSolver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold);
-    kMeansCPUSolver.solve();
-
     KMeansGPU1Solver kMeansGPU1Solver;
     kMeansGPU1Solver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold);
-    kMeansGPU1Solver.solve();
 
     printf("Initial Centroids\n-----------------------------------\n");
     printSolution(dataVectors, centroidVectorLength, numberOfDimensions);
     printf("\n\n");
 
+    kMeansCPUSolver.solve();
+
     printf("CPU Solution\n-----------------------------------\n");
     printSolution(kMeansCPUSolver.centroidVectors, centroidVectorLength, numberOfDimensions);
     printf("\n\n");
 
+    kMeansGPU1Solver.solve();
+
+    printf("GPU Solution No. 1\n-----------------------------------\n");
+    printSolution(kMeansGPU1Solver.centroidVectors, centroidVectorLength, numberOfDimensions);
+    printf("\n\n");
+
     clearDataVectors(dataVectors);
+    kMeansCPUSolver.clearSolver();
+    kMeansGPU1Solver.clearSolver();
     return 0;
 }
 
-float** generateDataVectors(int dataVectorLength, int numberOfDimensions) 
+float* generateDataVectors(int dataVectorLength, int numberOfDimensions)
 {
-    srand(0);
+    srand(time(NULL));
 
-    float** dataVectors = new float* [dataVectorLength];
+    float* dataVectors = new float[dataVectorLength * numberOfDimensions];
     for (int i = 0; i < dataVectorLength; i++) {
-        dataVectors[i] = new float[numberOfDimensions];
         for (int j = 0; j < numberOfDimensions; j++)
-            dataVectors[i][j] = rand() % 100000 / 100000.f;
+            dataVectors[i * numberOfDimensions + j] = rand() % 100000 / 100000.f;
     }
     return dataVectors;
 }
 
-void printSolution(float** solution, int dimX, int dimY)
+void printSolution(float* solution, int dimX, int dimY)
 {
     for (int i = 0; i < dimX; i++) {
         printf("%d:", i);
         for (int j = 0; j < dimY; j++)
-            printf("\t%06f", solution[i][j]);
+            printf("\t%06f", solution[i * dimY + j]);
         printf("\n");
     }
 }
 
-void clearDataVectors(float** dataVectors)
+void clearDataVectors(float* dataVectors)
 {
 }

@@ -13,15 +13,6 @@ __global__ void addKernel(int *c, const int *a, const int *b)
     c[i] = a[i] + b[i];
 }
 
-#define CDR_ERR "cudaDeviceReset failed!"
-
-void cudaCheck(cudaError_t status, char* message) {
-    if (status == cudaSuccess)
-        return;
-    fprintf(stderr, "%s", message);
-    exit(1);
-}
-
 int mainOld()
 {
     const int arraySize = 5;
@@ -42,7 +33,6 @@ int mainOld()
     printf("{1,2,3,4,5} + {10,20,30,40,50} = {%d,%d,%d,%d,%d}\n",
         c[0], c[1], c[2], c[3], c[4]);
 
-    cudaCheck(cudaDeviceReset(), CDR_ERR);
 
     return 0;
 }

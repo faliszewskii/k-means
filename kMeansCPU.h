@@ -3,13 +3,12 @@
 class KMeansCPUSolver {
 
 public:
-	float** centroidVectors;
+	float* centroidVectors;
 
 private:
 
-	float** dataVectors;
-	float** newCentroidVectors;
-	float* currentDistances;
+	float* dataVectors;
+	float* newCentroidVectors;
 	int* centroidMemberships;
 	int* centroidMembershipCounts;
 
@@ -21,7 +20,7 @@ private:
 	float threshold;
 
 public:
-	void initSolver(float** dataVectors, int dataVectorLength, int numberOfDimensions, int centroidCount, float threshold);
+	void initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidCount, float threshold);
 	void solve();
 	void clearSolver();
 
