@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <chrono>
 
 #include "kMeansCPU.h"
 #include "kMeansGPU1.cuh"
@@ -32,15 +33,22 @@ int main()
     printSolution(dataVectors, centroidVectorLength, numberOfDimensions);
     printf("\n\n");
 
+    auto startCPU = std::chrono::high_resolution_clock::now();
     kMeansCPUSolver.solve();
+    auto stopCPU = std::chrono::high_resolution_clock::now();
 
-    printf("CPU Solution\n-----------------------------------\n");
+
+    printf("CPU Solution\n-----------------------------------\nComputation time: %dms\n", 
+        std::chrono::duration_cast<std::chrono::milliseconds>(stopCPU - startCPU));
     printSolution(kMeansCPUSolver.centroidVectors, centroidVectorLength, numberOfDimensions);
     printf("\n\n");
 
+    auto startGPU1 = std::chrono::high_resolution_clock::now();
     kMeansGPU1Solver.solve();
+    auto stopGPU2 = std::chrono::high_resolution_clock::now();
 
-    printf("GPU Solution No. 1\n-----------------------------------\n");
+    printf("GPU Solution No. 1\n-----------------------------------\nComputation time: %dms\n",
+        std::chrono::duration_cast<std::chrono::milliseconds>(stopGPU2 - startGPU1));
     printSolution(kMeansGPU1Solver.centroidVectors, centroidVectorLength, numberOfDimensions);
     printf("\n\n");
 
