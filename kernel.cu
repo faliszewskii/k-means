@@ -22,7 +22,7 @@ void cudaCheck(cudaError_t status, char* message) {
     exit(1);
 }
 
-int main()
+int mainOld()
 {
     const int arraySize = 5;
     const int a[arraySize] = { 1, 2, 3, 4, 5 };
