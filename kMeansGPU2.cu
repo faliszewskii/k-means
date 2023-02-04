@@ -18,7 +18,7 @@
 #define CGLE_ERR "Kernel launch failed!"
 #define CDS_ERR "cudaDeviceSynchronize returned error code"
 
-void cudaCheck2(cudaError_t status, char* message) {
+template <int numberOfDimensions> void KMeansGPU2Solver<numberOfDimensions>::cudaCheck(cudaError_t status, char* message) {
 	if (status == cudaSuccess)
 		return;
 	fprintf(stderr, "%s", message);
@@ -39,7 +39,7 @@ struct is_equal_to
 	int number;
 };
 
-__device__ int findNearestClusterFor2(float* vector, float* centroidVectors, int numberOfDimensions, int centroidVectorLength)
+template <int numberOfDimensions> __device__ int findNearestClusterFor2(float* vector, float* centroidVectors, int centroidVectorLength)
 {
 	int minDistanceIndex = 0;
 	float minDistanceSquared = CUDART_INF_F;
@@ -58,13 +58,13 @@ __device__ int findNearestClusterFor2(float* vector, float* centroidVectors, int
 	return minDistanceIndex;
 }
 
-__global__ void findNearestClustersKernel2(float* dataVectors, int numberOfDimensions, int* centroidMemberships, int* membershipChangeVector, float* centroidVectors, int centroidVectorLength, int dataVectorsLength)
+template <int numberOfDimensions> __global__ void findNearestClustersKernel2(float* dataVectors, int* centroidMemberships, int* membershipChangeVector, float* centroidVectors, int centroidVectorLength, int dataVectorsLength)
 {
 	int tid = threadIdx.x + blockDim.x * blockIdx.x;
 	if (tid >= dataVectorsLength)
 		return;
 
-	int index = findNearestClusterFor2(&(dataVectors[tid * numberOfDimensions]), centroidVectors, numberOfDimensions, centroidVectorLength);
+	int index = findNearestClusterFor2<numberOfDimensions>(&(dataVectors[tid * numberOfDimensions]), centroidVectors, centroidVectorLength);
 	if (centroidMemberships[tid * numberOfDimensions] != index * numberOfDimensions) {
 		membershipChangeVector[tid] = 1;
 		for (int i = 0; i < numberOfDimensions; i++)
@@ -72,7 +72,7 @@ __global__ void findNearestClustersKernel2(float* dataVectors, int numberOfDimen
 	}	
 }
 
-void KMeansGPU2Solver::solve()
+template <int numberOfDimensions> void KMeansGPU2Solver<numberOfDimensions>::solve()
 {
 	float membershipChangeFraction;
 	int iteration = 0;
@@ -87,16 +87,15 @@ void KMeansGPU2Solver::solve()
 }
 
 
-void KMeansGPU2Solver::initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidVectorLength, float threshold, int limit)
+template <int numberOfDimensions> void KMeansGPU2Solver<numberOfDimensions>::initSolver(float* dataVectors, int dataVectorLength, int centroidVectorLength, float threshold, int limit)
 {
-	cudaCheck2(cudaSetDevice(0), CSD_ERR);
+	cudaCheck(cudaSetDevice(0), CSD_ERR);
 
 	cudaMallocManaged(&(this->dataVectors), dataVectorLength * numberOfDimensions * sizeof(float));
 	thrust::copy(dataVectors, dataVectors + dataVectorLength * numberOfDimensions, this->dataVectors);
 		
 
 	this->dataVectorLength = dataVectorLength;
-	this->numberOfDimensions = numberOfDimensions;
 	this->centroidVectorLength = centroidVectorLength;
 	this->threshold = threshold;
 	this->limit = limit;
@@ -120,27 +119,27 @@ void KMeansGPU2Solver::initSolver(float* dataVectors, int dataVectorLength, int 
 
 }
 
-void KMeansGPU2Solver::clearVariables()
+template <int numberOfDimensions> void KMeansGPU2Solver<numberOfDimensions>::clearVariables()
 {
 	thrust::fill(membershipChangeVector, membershipChangeVector + dataVectorLength, 0);
 }
 
-float KMeansGPU2Solver::getMembershipChangeFraction() 
+template <int numberOfDimensions> float KMeansGPU2Solver<numberOfDimensions>::getMembershipChangeFraction()
 {
 	int membershipChangeCounter = thrust::reduce(membershipChangeVector, membershipChangeVector + dataVectorLength);
 	return (float)membershipChangeCounter / dataVectorLength;
 }
 
-void KMeansGPU2Solver::findNearestClusters()
+template <int numberOfDimensions> void KMeansGPU2Solver<numberOfDimensions>::findNearestClusters()
 {
 	int blockSize = 1024;
 	int blocks = dataVectorLength / 1024 + 1;
-	findNearestClustersKernel2<<<blocks, blockSize>>>(dataVectors, numberOfDimensions, centroidMemberships, membershipChangeVector, centroidVectors, centroidVectorLength, dataVectorLength);
-	cudaCheck2(cudaGetLastError(), CGLE_ERR);
-	cudaCheck2(cudaDeviceSynchronize(), CDS_ERR);
+	findNearestClustersKernel2<numberOfDimensions><<<blocks, blockSize>>>(dataVectors, centroidMemberships, membershipChangeVector, centroidVectors, centroidVectorLength, dataVectorLength);
+	cudaCheck(cudaGetLastError(), CGLE_ERR);
+	cudaCheck(cudaDeviceSynchronize(), CDS_ERR);
 }
 
-void KMeansGPU2Solver::averageNewClusters()
+template <int numberOfDimensions> void KMeansGPU2Solver<numberOfDimensions>::averageNewClusters()
 {
 	thrust::copy(dataVectors, dataVectors + dataVectorLength * numberOfDimensions, copiedData);
 	thrust::copy(centroidMemberships, centroidMemberships + dataVectorLength * numberOfDimensions, copiedMemberships);
@@ -162,7 +161,7 @@ void KMeansGPU2Solver::averageNewClusters()
 
 }
 
-void KMeansGPU2Solver::clearSolver()
+template <int numberOfDimensions> void KMeansGPU2Solver<numberOfDimensions>::clearSolver()
 {
-	cudaCheck2(cudaDeviceReset(), CDR_ERR);
+	cudaCheck(cudaDeviceReset(), CDR_ERR);
 }

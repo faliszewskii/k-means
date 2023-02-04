@@ -1,8 +1,7 @@
 #pragma once
-#include <thrust/device_ptr.h>
-#include <vector>
+#include <cuda_runtime_api.h>
 
-class KMeansGPU2Solver {
+template <int numberOfDimensions> class KMeansGPU2Solver {
 
 public:
 	float* centroidVectors;
@@ -14,7 +13,6 @@ private:
 	int* centroidKeys;
 
 	int dataVectorLength;
-	int numberOfDimensions;
 	int centroidVectorLength;
 
 	int* membershipChangeVector;
@@ -27,7 +25,7 @@ private:
 	int* keys;
 
 public:
-	void initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidCount, float threshold, int limit);
+	void initSolver(float* dataVectors, int dataVectorLength, int centroidCount, float threshold, int limit);
 	void solve();
 	void clearSolver();
 
@@ -36,4 +34,5 @@ private:
 	void findNearestClusters();
 	void averageNewClusters();
 	void clearVariables();
+	void cudaCheck(cudaError_t status, char* message);
 };

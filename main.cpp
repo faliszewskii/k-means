@@ -13,6 +13,7 @@
 #define EPS 10 / N
 #define LIM 100
 
+
 float* generateDataVectors(int dataVectorLength, int numberOfDimensions);
 void printSolution(float* solution, int dimX, int dimY);
 void printSolution(float** solution, int dimX, int dimY);
@@ -21,19 +22,19 @@ void clearDataVectors(float* dataVectors);
 int main()
 {
     const int dataVectorLength = N;
-    const int numberOfDimensions = D;
     const int centroidVectorLength = K;
+    const int numberOfDimensions = D;
     const float threshold = EPS;
     const int limit = LIM;
 
     float* dataVectors = generateDataVectors(dataVectorLength, numberOfDimensions);
 
-    KMeansCPUSolver kMeansCPUSolver;
-    kMeansCPUSolver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold);
-    KMeansGPU1Solver kMeansGPU1Solver;
-    kMeansGPU1Solver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold);
-    KMeansGPU2Solver kMeansGPU2Solver;
-    kMeansGPU2Solver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold, limit);
+    KMeansCPUSolver<numberOfDimensions> kMeansCPUSolver;
+    kMeansCPUSolver.initSolver(dataVectors, dataVectorLength, centroidVectorLength, threshold, limit);
+    KMeansGPU1Solver<numberOfDimensions> kMeansGPU1Solver;
+    kMeansGPU1Solver.initSolver(dataVectors, dataVectorLength, centroidVectorLength, threshold, limit);
+    KMeansGPU2Solver<numberOfDimensions> kMeansGPU2Solver;
+    kMeansGPU2Solver.initSolver(dataVectors, dataVectorLength, centroidVectorLength, threshold, limit);
 
     printf("Initial Centroids\n-----------------------------------\n");
     printSolution(dataVectors, centroidVectorLength, numberOfDimensions);

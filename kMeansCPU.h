@@ -1,6 +1,6 @@
 #pragma once
 
-class KMeansCPUSolver {
+template <int numberOfDimensions> class KMeansCPUSolver {
 
 public:
 	float* centroidVectors;
@@ -13,14 +13,14 @@ private:
 	int* centroidMembershipCounts;
 
 	int dataVectorLength;
-	int numberOfDimensions;
 	int centroidVectorLength;
 
 	int membershipChangeCounter;
 	float threshold;
+	int limit;
 
 public:
-	void initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidCount, float threshold);
+	void initSolver(float* dataVectors, int dataVectorLength, int centroidCount, float threshold, int limit);
 	void solve();
 	void clearSolver();
 

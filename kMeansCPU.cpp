@@ -1,28 +1,28 @@
 #include "kMeansCPU.h"
 #include <limits>
 
-
-void KMeansCPUSolver::solve()
+template <int numberOfDimensions> void KMeansCPUSolver<numberOfDimensions>::solve()
 {
 	float membershipChangeFraction;
+	int iteration = 0;
 	
 	do {
 		clearVariables();
 		findNearestClusters();
 		averageNewClusters();
 		membershipChangeFraction = (float)membershipChangeCounter / dataVectorLength;
-	} while (membershipChangeFraction > threshold);
+	} while (iteration < limit && membershipChangeFraction > threshold);
 }
 
 
-void KMeansCPUSolver::initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidVectorLength, float threshold)
+template <int numberOfDimensions> void KMeansCPUSolver<numberOfDimensions>::initSolver(float* dataVectors, int dataVectorLength, int centroidCount, float threshold, int limit)
 {
 	this->dataVectors = dataVectors;
-	this->dataVectorLength = dataVectorLength;
-	this->numberOfDimensions = numberOfDimensions;
-	this->centroidVectorLength = centroidVectorLength;
 	this->threshold = threshold;
 	this->membershipChangeCounter = 0;
+	this->dataVectorLength = dataVectorLength;
+	this->centroidVectorLength = centroidCount;
+	this->limit = limit;
 
 	centroidMemberships = new int[dataVectorLength];
 	centroidMembershipCounts = new int[centroidVectorLength];
@@ -35,7 +35,7 @@ void KMeansCPUSolver::initSolver(float* dataVectors, int dataVectorLength, int n
 			centroidVectors[i * numberOfDimensions + j] = dataVectors[i * numberOfDimensions + j];
 }
 
-void KMeansCPUSolver::clearVariables()
+template <int numberOfDimensions> void KMeansCPUSolver<numberOfDimensions>::clearVariables()
 {
 	membershipChangeCounter = 0;
 
@@ -47,7 +47,7 @@ void KMeansCPUSolver::clearVariables()
 		centroidMembershipCounts[i] = 0;
 }
 
-void KMeansCPUSolver::findNearestClusters()
+template <int numberOfDimensions> void KMeansCPUSolver<numberOfDimensions>::findNearestClusters()
 {
 	for (int i = 0; i < dataVectorLength; i++) {
 		int index = findNearestClusterFor(&dataVectors[i * numberOfDimensions]);
@@ -61,14 +61,14 @@ void KMeansCPUSolver::findNearestClusters()
 	}
 }
 
-void KMeansCPUSolver::averageNewClusters()
+template <int numberOfDimensions> void KMeansCPUSolver<numberOfDimensions>::averageNewClusters()
 {
 	for (int i = 0; i < centroidVectorLength; i++)
 		for (int j = 0; j < numberOfDimensions; j++)
 			centroidVectors[i * numberOfDimensions + j] = newCentroidVectors[i * numberOfDimensions + j] / centroidMembershipCounts[i];
 }
 
-int KMeansCPUSolver::findNearestClusterFor(float* vector)
+template <int numberOfDimensions> int KMeansCPUSolver<numberOfDimensions>::findNearestClusterFor(float* vector)
 {
 	int minDistanceIndex = 0;
 	float minDistanceSquared = std::numeric_limits<float>::max();
@@ -87,6 +87,8 @@ int KMeansCPUSolver::findNearestClusterFor(float* vector)
 	return minDistanceIndex;
 }
 
-void KMeansCPUSolver::clearSolver()
+template <int numberOfDimensions> void KMeansCPUSolver<numberOfDimensions>::clearSolver()
 {
 }
+
+
