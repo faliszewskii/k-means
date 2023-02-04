@@ -7,10 +7,11 @@
 #include "kMeansGPU1.cuh"
 #include "kMeansGPU2.cuh"
 
-#define N 10000000
-#define K 10
-#define D 2
+#define N 10000
+#define K 8
+#define D 3
 #define EPS 1 / N
+#define LIM 100
 
 float* generateDataVectors(int dataVectorLength, int numberOfDimensions);
 void printSolution(float* solution, int dimX, int dimY);
@@ -22,6 +23,7 @@ int main()
     const int numberOfDimensions = D;
     const int centroidVectorLength = K;
     const float threshold = EPS;
+    const int limit = LIM;
 
     float* dataVectors = generateDataVectors(dataVectorLength, numberOfDimensions);
 
@@ -30,7 +32,7 @@ int main()
     KMeansGPU1Solver kMeansGPU1Solver;
     kMeansGPU1Solver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold);
     KMeansGPU2Solver kMeansGPU2Solver;
-    kMeansGPU2Solver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold);
+    kMeansGPU2Solver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold, limit);
 
     printf("Initial Centroids\n-----------------------------------\n");
     printSolution(dataVectors, centroidVectorLength, numberOfDimensions);

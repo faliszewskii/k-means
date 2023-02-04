@@ -12,17 +12,17 @@ private:
 	float* newCentroidVectors;
 	int* centroidMemberships;
 	int* centroidMembershipCounts;
-	thrust::device_ptr<int> thrust_centroidMembershipCounts;
 
 	int dataVectorLength;
 	int numberOfDimensions;
 	int centroidVectorLength;
 
-	thrust::device_ptr<int> thrust_MembershipChangeVector;
+	int* membershipChangeVector;
 	float threshold;
+	int limit;
 
 public:
-	void initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidCount, float threshold);
+	void initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidCount, float threshold, int limit);
 	void solve();
 	void clearSolver();
 
