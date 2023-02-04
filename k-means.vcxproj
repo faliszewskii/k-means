@@ -80,6 +80,7 @@
   <ItemGroup>
     <CudaCompile Include="kernel.cu" />
     <CudaCompile Include="kMeansGPU1.cu" />
+    <CudaCompile Include="kMeansGPU2.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="kMeansCPU.cpp" />
@@ -88,6 +89,7 @@
   <ItemGroup>
     <ClInclude Include="kMeansCPU.h" />
     <ClInclude Include="kMeansGPU1.cuh" />
+    <ClInclude Include="kMeansGPU2.cuh" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

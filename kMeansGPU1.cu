@@ -1,10 +1,10 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "kMeansGPU1.cuh"
-#include "device_functions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <cuda_runtime_api.h>
 #include <math.h>
 
 #define CUDART_INF_F 0x7ff0000000000000
@@ -124,25 +124,6 @@ void KMeansGPU1Solver::averageNewClusters()
 	for (int i = 0; i < centroidVectorLength; i++)
 		for (int j = 0; j < numberOfDimensions; j++)
 			centroidVectors[i * numberOfDimensions + j] = newCentroidVectors[i * numberOfDimensions + j] / centroidMembershipCounts[i];
-}
-
-int KMeansGPU1Solver::findNearestClusterFor(float* vector)
-{
-	int minDistanceIndex = 0;
-	float minDistanceSquared = CUDART_INF_F;
-	float distanceSquared = 0;
-
-	for (int i = 0; i < centroidVectorLength; i++) {
-		distanceSquared = 0;
-		for (int j = 0; j < numberOfDimensions; j++)
-			distanceSquared += powf(vector[j] - centroidVectors[i * numberOfDimensions + j], 2);
-		if (distanceSquared < minDistanceSquared) {
-			minDistanceSquared = distanceSquared;
-			minDistanceIndex = i;
-		}
-	}
-
-	return minDistanceIndex;
 }
 
 void KMeansGPU1Solver::clearSolver()

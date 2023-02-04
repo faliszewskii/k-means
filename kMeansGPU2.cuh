@@ -1,6 +1,7 @@
 #pragma once
+#include <thrust/device_ptr.h>
 
-class KMeansGPU1Solver {
+class KMeansGPU2Solver {
 
 public:
 	float* centroidVectors;
@@ -11,12 +12,13 @@ private:
 	float* newCentroidVectors;
 	int* centroidMemberships;
 	int* centroidMembershipCounts;
+	thrust::device_ptr<int> thrust_centroidMembershipCounts;
 
 	int dataVectorLength;
 	int numberOfDimensions;
 	int centroidVectorLength;
 
-	int* membershipChangeCounter;
+	thrust::device_ptr<int> thrust_MembershipChangeVector;
 	float threshold;
 
 public:
@@ -25,6 +27,7 @@ public:
 	void clearSolver();
 
 private:
+	float getMembershipChangeFraction();
 	void findNearestClusters();
 	void averageNewClusters();
 	void clearVariables();
