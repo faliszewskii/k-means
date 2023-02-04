@@ -5,9 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cuda_runtime_api.h>
-#include <thrust/device_ptr.h>
+#include <thrust/device_vector.h>
 #include <thrust/reduce.h>
 #include <thrust/count.h>
+#include <thrust/sort.h>
 #include <math.h>
 
 #define CUDART_INF_F 0x7ff0000000000000
@@ -57,21 +58,18 @@ __device__ int findNearestClusterFor2(float* vector, float* centroidVectors, int
 	return minDistanceIndex;
 }
 
-__global__ void findNearestClustersKernel2(float* dataVectors, int numberOfDimensions, int* centroidMemberships, int* membershipChangeVector, float* newCentroidVectors, int* centroidMembershipCounts, float* centroidVectors, int centroidVectorLength, int dataVectorsLength)
+__global__ void findNearestClustersKernel2(float* dataVectors, int numberOfDimensions, int* centroidMemberships, int* membershipChangeVector, float* centroidVectors, int centroidVectorLength, int dataVectorsLength)
 {
 	int tid = threadIdx.x + blockDim.x * blockIdx.x;
 	if (tid >= dataVectorsLength)
 		return;
 
-	int index = findNearestClusterFor2(&dataVectors[tid * numberOfDimensions], centroidVectors, numberOfDimensions, centroidVectorLength);
-	if (centroidMemberships[tid] != index) {
-		membershipChangeVector[tid] = 1;		
-		centroidMemberships[tid] = index;
-	}
-	for (int j = 0; j < numberOfDimensions; j++)
-		// Ten atomicAdd 
-		atomicAdd(&newCentroidVectors[index * numberOfDimensions + j], dataVectors[tid * numberOfDimensions + j]);	
-	centroidMembershipCounts[tid] = index;
+	int index = findNearestClusterFor2(&(dataVectors[tid * numberOfDimensions]), centroidVectors, numberOfDimensions, centroidVectorLength);
+	if (centroidMemberships[tid * numberOfDimensions] != index * numberOfDimensions) {
+		membershipChangeVector[tid] = 1;
+		for (int i = 0; i < numberOfDimensions; i++)
+			centroidMemberships[tid * numberOfDimensions + i] = index * numberOfDimensions + i;
+	}	
 }
 
 void KMeansGPU2Solver::solve()
@@ -94,8 +92,8 @@ void KMeansGPU2Solver::initSolver(float* dataVectors, int dataVectorLength, int 
 	cudaCheck2(cudaSetDevice(0), CSD_ERR);
 
 	cudaMallocManaged(&(this->dataVectors), dataVectorLength * numberOfDimensions * sizeof(float));
-	for (int i = 0; i < dataVectorLength * numberOfDimensions; i++)
-		this->dataVectors[i] = dataVectors[i];
+	thrust::copy(dataVectors, dataVectors + dataVectorLength * numberOfDimensions, this->dataVectors);
+		
 
 	this->dataVectorLength = dataVectorLength;
 	this->numberOfDimensions = numberOfDimensions;
@@ -103,27 +101,28 @@ void KMeansGPU2Solver::initSolver(float* dataVectors, int dataVectorLength, int 
 	this->threshold = threshold;
 	this->limit = limit;
 
+	copiedData = new float[dataVectorLength * numberOfDimensions];
+	copiedMemberships = new float[dataVectorLength * numberOfDimensions];
+	centroids = new float[centroidVectorLength * numberOfDimensions];
+	keys = new int[centroidVectorLength * numberOfDimensions];
+
 	cudaMallocManaged(&membershipChangeVector, dataVectorLength * sizeof(int));
-	cudaMallocManaged(&centroidMemberships, dataVectorLength * sizeof(int));
-	cudaMallocManaged(&centroidMembershipCounts, dataVectorLength * sizeof(int));
-	cudaMallocManaged(&centroidVectors, centroidVectorLength * numberOfDimensions * sizeof(float));
-	cudaMallocManaged(&newCentroidVectors, centroidVectorLength * numberOfDimensions * sizeof(float));
+	cudaMallocManaged(&centroidMemberships, dataVectorLength * numberOfDimensions * sizeof(int));
+	thrust::fill(centroidMemberships, centroidMemberships + dataVectorLength * numberOfDimensions, -1);
+
+	cudaMallocManaged(&centroidVectors, centroidVectorLength * numberOfDimensions  * sizeof(float));
+
+	cudaMallocManaged(&centroidKeys, centroidVectorLength * sizeof(int));
 
 	for (int i = 0; i < centroidVectorLength; i++)
 		for (int j = 0; j < numberOfDimensions; j++)
-			centroidVectors[i * numberOfDimensions + j] = dataVectors[i * numberOfDimensions + j];
+			centroidVectors[i * numberOfDimensions + j] = (this->dataVectors)[i * numberOfDimensions + j];
 
 }
 
 void KMeansGPU2Solver::clearVariables()
 {
 	thrust::fill(membershipChangeVector, membershipChangeVector + dataVectorLength, 0);
-	thrust::fill(centroidMembershipCounts, centroidMembershipCounts + dataVectorLength, 0);
-	
-
-	for (int i = 0; i < centroidVectorLength; i++)
-		for (int j = 0; j < numberOfDimensions; j++)
-			newCentroidVectors[i * numberOfDimensions + j] = 0;
 }
 
 float KMeansGPU2Solver::getMembershipChangeFraction() 
@@ -136,18 +135,31 @@ void KMeansGPU2Solver::findNearestClusters()
 {
 	int blockSize = 1024;
 	int blocks = dataVectorLength / 1024 + 1;
-	findNearestClustersKernel2<<<blocks, blockSize>>>(dataVectors, numberOfDimensions, centroidMemberships, membershipChangeVector, newCentroidVectors, centroidMembershipCounts, centroidVectors, centroidVectorLength, dataVectorLength);
+	findNearestClustersKernel2<<<blocks, blockSize>>>(dataVectors, numberOfDimensions, centroidMemberships, membershipChangeVector, centroidVectors, centroidVectorLength, dataVectorLength);
 	cudaCheck2(cudaGetLastError(), CGLE_ERR);
 	cudaCheck2(cudaDeviceSynchronize(), CDS_ERR);
 }
 
 void KMeansGPU2Solver::averageNewClusters()
 {
+	thrust::copy(dataVectors, dataVectors + dataVectorLength * numberOfDimensions, copiedData);
+	thrust::copy(centroidMemberships, centroidMemberships + dataVectorLength * numberOfDimensions, copiedMemberships);
+	thrust::sort_by_key(copiedMemberships, copiedMemberships + dataVectorLength * numberOfDimensions, copiedData);
+
+	thrust::reduce_by_key(
+		copiedMemberships,
+		copiedMemberships + dataVectorLength * numberOfDimensions,
+		copiedData,
+		keys,
+		centroids
+	);
+
 	for (int i = 0; i < centroidVectorLength; i++) {
-		int centroidMembershipCount = thrust::count_if(centroidMembershipCounts, centroidMembershipCounts + dataVectorLength, is_equal_to(i));
+		int centroidMembershipCount = thrust::count_if(copiedMemberships, copiedMemberships + dataVectorLength * numberOfDimensions, is_equal_to(i*numberOfDimensions));
 		for (int j = 0; j < numberOfDimensions; j++)
-			centroidVectors[i * numberOfDimensions + j] = newCentroidVectors[i * numberOfDimensions + j] / centroidMembershipCount;
-	}	
+			centroidVectors[i * numberOfDimensions + j] = centroids[i * numberOfDimensions + j] / centroidMembershipCount;
+	}
+
 }
 
 void KMeansGPU2Solver::clearSolver()

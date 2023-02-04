@@ -1,5 +1,6 @@
 #pragma once
 #include <thrust/device_ptr.h>
+#include <vector>
 
 class KMeansGPU2Solver {
 
@@ -9,9 +10,8 @@ public:
 private:
 
 	float* dataVectors;
-	float* newCentroidVectors;
 	int* centroidMemberships;
-	int* centroidMembershipCounts;
+	int* centroidKeys;
 
 	int dataVectorLength;
 	int numberOfDimensions;
@@ -20,6 +20,11 @@ private:
 	int* membershipChangeVector;
 	float threshold;
 	int limit;
+
+	float* copiedData;
+	float* copiedMemberships;
+	float* centroids;
+	int* keys;
 
 public:
 	void initSolver(float* dataVectors, int dataVectorLength, int numberOfDimensions, int centroidCount, float threshold, int limit);

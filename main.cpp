@@ -7,14 +7,15 @@
 #include "kMeansGPU1.cuh"
 #include "kMeansGPU2.cuh"
 
-#define N 10000
+#define N 2000000
 #define K 8
 #define D 3
-#define EPS 1 / N
+#define EPS 10 / N
 #define LIM 100
 
 float* generateDataVectors(int dataVectorLength, int numberOfDimensions);
 void printSolution(float* solution, int dimX, int dimY);
+void printSolution(float** solution, int dimX, int dimY);
 void clearDataVectors(float* dataVectors);
 
 int main()
@@ -38,16 +39,7 @@ int main()
     printSolution(dataVectors, centroidVectorLength, numberOfDimensions);
     printf("\n\n");
 
-    /*auto startGPU = std::chrono::high_resolution_clock::now();
-    kMeansGPU1Solver.solve();
-    auto stopGPU = std::chrono::high_resolution_clock::now();
-
-    printf("Warm up GPU\n-----------------------------------\nComputation time: %dms\n",
-        std::chrono::duration_cast<std::chrono::milliseconds>(stopGPU - startGPU));
-    printSolution(kMeansGPU1Solver.centroidVectors, centroidVectorLength, numberOfDimensions);
-    kMeansGPU1Solver.initSolver(dataVectors, dataVectorLength, numberOfDimensions, centroidVectorLength, threshold);*/
-
-    /*auto startCPU = std::chrono::high_resolution_clock::now();
+    auto startCPU = std::chrono::high_resolution_clock::now();
     kMeansCPUSolver.solve();
     auto stopCPU = std::chrono::high_resolution_clock::now();
 
@@ -55,7 +47,7 @@ int main()
     printf("CPU Solution\n-----------------------------------\nComputation time: %dms\n", 
         std::chrono::duration_cast<std::chrono::milliseconds>(stopCPU - startCPU));
     printSolution(kMeansCPUSolver.centroidVectors, centroidVectorLength, numberOfDimensions);
-    printf("\n\n");*/
+    printf("\n\n");
 
     auto startGPU1 = std::chrono::high_resolution_clock::now();
     kMeansGPU1Solver.solve();
@@ -100,6 +92,16 @@ void printSolution(float* solution, int dimX, int dimY)
         printf("%d:", i);
         for (int j = 0; j < dimY; j++)
             printf("\t%06f", solution[i * dimY + j]);
+        printf("\n");
+    }
+}
+
+void printSolution(float** solution, int dimX, int dimY)
+{
+    for (int i = 0; i < dimX; i++) {
+        printf("%d:", i);
+        for (int j = 0; j < dimY; j++)
+            printf("\t%06f", solution[i][j]);
         printf("\n");
     }
 }
